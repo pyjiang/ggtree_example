@@ -1,15 +1,16 @@
 ---
-title: "My example of ggtree"
+title: "My example of ggtree to visualize phylogeny"
 output: html_notebook
 author: Pengyao Jiang
-date: 06.24.2020
+date: 06.25.2020
 ---
 
 
-### for more information ,check ggtree online [documentation](https://guangchuangyu.github.io/ggtree-book/chapter-ggtree.html)
+### For more information about the ggtree R package, check ggtree online [documentation](https://guangchuangyu.github.io/ggtree-book/chapter-ggtree.html)
+### You can find data and the source of R notebook from [here](https://github.com/pyjiang/ggtree_example). The distance matrix is from [Peter et al, Nature 2018](https://www.nature.com/articles/s41586-018-0030-5) and the annotation is adapted from a subset of the orignal data.  
 
-### load pacakges 
 
+#### load pacakges 
 ```{r}
 library(ape)
 library(phangorn)
@@ -21,20 +22,16 @@ library(tidytree)
 library(treeio)
 ```
 
-### read in the distance matrix of 1011 strains
-
+#### read in the distance matrix of 1011 strains
 ```{r}
 ## use phylogenetic tree built from SNPs 
 y1002_dist <- read.table("1011DistanceMatrixBasedOnSNPs.tab",header=TRUE,row.names=1)
 
 head(y1002_dist)
-
 ```
 
-### read in the annotation file with a subset of 618 strains 
-
+#### read the annotation file with a subset of 618 strains 
 ```{r}
-
 annot_new <- read.table("strain_annot_new.csv", header =TRUE, sep=",",
                     stringsAsFactors = FALSE)
 
@@ -43,10 +40,11 @@ head(annot_new)
 ```
 
 
+#### get the subset of the distance matrix with 618 strains, then using NJ to build a tree
 
 ```{r}
 
-all_strains <- CA_ratio_pval_tb[,"strains"]
+all_strains <- names(y1002_dist)
 subset_strains <- annot_new[,"ID"]
 
 
@@ -61,14 +59,14 @@ y1002_dist_sub <- y1002_dist[subset,subset]
 y1002_sub_nj <- NJ(as.matrix(y1002_dist_sub))
 
 y1002_sub_nj_new <- root(y1002_sub_nj, "CEG")
-
 ```
 
-### if visualizing the raw tree  
-
+#### if visualizing the raw tree  
 ```{r}
 ggtree(y1002_sub_nj_new)
 ```
+
+#### Or in the circular form. 
 
 
 ```{r}
@@ -77,17 +75,17 @@ ggtree(y1002_sub_nj_new, layout="circular")
 ```
 
 
-
-### Get and show a subtree 
-
+#### The raw trees do not look pretty. Try to see some features from ggtree with a subset of the orinal tree. 
+#### Get a subtree.
 ```{r}
 ## only get subset of beer strains
 strains <- c("BRM", "SACE_YAG", "AEQ", "AAR", "SACE_YAB", "AQH", "AFP")
 
 
-## get the node for this clade 
+## find the node for common ancester of this clade 
 node_show <- MRCA(y1002_sub_nj_new, strains)
 
+## subset the original tree 
 # https://tbradley1013.github.io/2018/06/19/subsetting-phylogenetic-trees/
 # https://rdrr.io/github/GuangchuangYu/treeio/man/tree_subset.html
 subtree <- tree_subset(y1002_sub_nj_new, node = node_show, levels_back =0 )
@@ -101,7 +99,6 @@ subtree
 
 x <-as_tibble(subtree)
 
-x
 ## and can be converted back to phylo, using as_phylo()
 ## as.phylo(x)
 
@@ -110,10 +107,12 @@ x
 ## as.treedata(x)
 ## but I was having problems using this function where the annotation seems to be lost in the conversion.
 
+
+x
 ```
 
 
-### Annotate the tree: assign strains into 2 groups 
+#### Annotate the tree: assign strains to 2 groups 
 
 ```{r}
 
@@ -127,7 +126,7 @@ p <- ggtree(subtree2)+geom_tiplab( size=4)
 p
 ```
 
-### scale the tree for output
+#### scale the tree for output
 ```{r}
 
 p <- p+ xlim(0,0.7)
@@ -137,50 +136,57 @@ p
 
 
 
-### If want a circular tree
+#### If want a circular tree
 ```{r}
 ggtree(subtree2, layout= "circular")+geom_tiplab( size=4)
 
 ```
 
 
-### add a circle to a subset of strains 
+#### add a circle to strains with two different colors indicating the group information 
 ```{r}
 p + geom_tippoint(aes(color=group), size=3) +scale_color_manual(values=c("#1c7c54","#999999")) 
 ```
 
-### Collapse a clade 
+#### or color the strain names
+```{r}
 
-### find common ancester of AFP, AFA, AFB
+ggtree(subtree2)+geom_tiplab( aes(color=group), size=4) + xlim(0,0.7)
+
+```
+
+
+#### Collapse a clade.  (for AFP, AFA, AFB)
+
 
 ```{r}
+## find common ancester of AFP, AFA, AFB
 clade1 <- MRCA(subtree2, c("AFP", "AFB"))
 
 clade1
 ```
 
-### collapse 
+#### collapse 
 ```{r}
 collapse(p, clade1, 'min', fill="#999999")  
-
-
 ```
 
-### scale the collapsed clade
+#### scale the collapsed clade
 ```{r}
+
+## need to scale first, and then collapse 
+
 p3 <- scaleClade(p, clade1, 0.3)
 collapse(p3, clade1, 'min', fill="#999999")  
-
-
 ```
 
-### Or highlight a clade 
+#### Or highlight a clade 
 
 ```{r}
 p + geom_hilight(node=clade1, fill="#2F30EE", alpha=0.45)
 ```
 
-###If want to show a bunch of strains, which do not belong to a monophyletic group
+#### If want to show a bunch of strains, which do not belong to a monophyletic group, use the function `geom_strip`
 
 ```{r}
 p + geom_strip("SACE_YAB","AFB",barsize=1,color="red", label = "group X") 
@@ -190,9 +196,13 @@ p + geom_strip("SACE_YAB","AFB",barsize=1,color="red", label = "group X")
 
 
 
-### A real example of a coloring a whole phylogenetic tree 
+#### A real example of a coloring a whole phylogenetic tree 
 
 ```{r}
+## this example used the original phylogentic tree (y1002_sub_nj_new) 
+## but only use 3 columns from the annotation file to annotate: CAgroup, Clades, group
+
+
 ## only keep Clades and group
 subtb_annot2 <- annot_new[,c("ID", "CAgroup", "Clades", "group")]
 
@@ -201,6 +211,7 @@ names(subtb_annot2) <- c("label", "CAgroup", "Clades", "group")
 
 subtb_annot2new <- subtb_annot2[,c("label", "CAgroup")]
 
+subtb_annot2new[,"CAgroup"] <- factor(subtb_annot2new[,"CAgroup"])
 
 
 ## then add group information by clade 
@@ -229,12 +240,10 @@ for(i in 1:nclades)
 
 
 tree <- groupOTU(as_tibble(y1002_sub_nj_new), clades_for_ggtree)
-```
 
-
-```{r}
 ## add annotation of CA group
 tree2 <- as.treedata(full_join(tree, subtb_annot2new, by="label"))
+
 
 
 ## find the node for each clade 
@@ -264,12 +273,17 @@ n11 <- MRCA(tree2, c("CCV", "ARH"))
 ## 25. sake
 n12 <- MRCA(tree2, c("ARP", "ANR"))
 ## 26. asian ferm 
-n15 <- MRCA(tree2, c("AKL", "AHQ"))
+n13 <- MRCA(tree2, c("AKL", "AHQ"))
 
-##n13 <- MRCA(y1002_sub_nj_new, c("AST", "BHL"))
+## Taiwanese
+treetb <- as_tibble(tree2)
+n14_pre <- treetb[treetb[,"label"] == "CEG","node"]
+n14 <- n14_pre[!is.na(n14_pre)]
 
-##n14 <- MRCA(y1002_sub_nj_new, c("CDM", "AER"))
-
+## 7. mosaic beer 
+n15 <- MRCA(tree2, c("SACE_YAG", "CBN"))
+## 8. mixed origin 
+n16 <- MRCA(tree2, c("CHG", "AFF"))
 
 
 
@@ -278,21 +292,9 @@ z1 <- MRCA(tree2, c("SACE_YAG", "BRM"))
 z2 <- MRCA(tree2, c("CHG", "AFF"))
 z3 <- MRCA(tree2, c("ADT", "ACN"))
 
-## 7. mosaic beer 
-n17 <- MRCA(tree2, c("SACE_YAG", "CBN"))
-## 8. mixed origin 
-n18 <- MRCA(tree2, c("CHG", "AFF"))
-## M2. mosaic region 2
-n16 <- MRCA(tree2, c("BDD", "BDK"))
 
-
-
-
-## 
-treetb <- as_tibble(tree2)
-n14_pre <- treetb[treetb[,"label"] == "CEG","node"]
-n14 <- n14_pre[!is.na(n14_pre)]
-
+## originally used group field to color, therefore have so many different colors 
+## now only use CAgroup field to color tip labels. (all the clade names and their colors are not used.)
 color_vec <- c( "1. Wine/European"= "#5B1A18", 
                 "1. Wine/European (subclade 1)"= "#5B1A18",
                 "1. Wine/European (subclade 2)"= "#5B1A18",
@@ -330,20 +332,17 @@ color_vec <- c( "1. Wine/European"= "#5B1A18",
 )
 
 
-## drop certain tips 
 
-#drop.tip(as.treedata(tree2), to_drop)
+p <- ggtree(tree2, layout= "circular", size=0.3)
 
-
-p <- ggtree(tree2, layout= "circular", size=0.3) 
-   
 p <- rotate_tree(p, 180)
 
+## only strains that has CAgroup (non NA value, should have a value of 1) will be shown of tip labels in red
+## CAgroup needs to be factor 
 p <- p + geom_tiplab(aes(color= CAgroup),  size=2, hjust = 1)  +
   scale_color_manual(values=color_vec)
 
-#p <- p + geom_tiplab(  size=3, hjust = 1)  +
-#  scale_color_manual(values=color_vec)
+
 
 p <- scaleClade(p, n1, 0.3)
 p <- scaleClade(p, n2, 0.5)
@@ -357,27 +356,17 @@ p <- scaleClade(p, n9, 0.5)
 p <- scaleClade(p, n10, 0.5)
 p <- scaleClade(p, n11, 0.5)
 p <- scaleClade(p, n12, 0.5)
-#p <- scaleClade(p, n14, 0.2)
-p <- scaleClade(p, n15, 0.5)
-#p <- scaleClade(p, n16, 0.55)
+p <- scaleClade(p, n13, 0.5)
 
 p <- scaleClade(p, z1, 5.2)
 p <- scaleClade(p, z2, 5.2)
 p <- scaleClade(p, z3, 5.2)
+
 ```
 
 
 ```{r}
-#p2 <- p %>% collapse(node=n1, mode= "mixed", fill="darkgreen") # +
-# # geom_point2(aes(subset=(node==n1)), shape=21, size=3, fill='green')
 
-
-#p2 <- p %>% scaleClade(n1, 0.001) %>% collapse(n1, 'mixed', fill="darkgreen")  
-
-#p2 <-  collapse(p2, node=n2, mode= "mixed", fill="darkgreen") # +
-#  geom_point2(aes(subset=(node==n2)), shape=21, size=3, fill='green')
-
-#p2 <- scaleClade(p, n2, 0.2) %>% collapse(n2, 'min', fill="blue")  
 
 p2 <- collapse(p, n1, 'min', fill="#999999")  
 
@@ -403,13 +392,9 @@ p2 <-  collapse(p2, n11, 'min', fill="#999999")
 
 p2 <- collapse(p2, n12, 'min', fill="#999999")  
 
-
-p2 <-  collapse(p2, n15, 'min', fill="#999999") 
-#p2 <-  collapse(p2, n16, 'min', fill="blue") 
+p2 <-  collapse(p2, n13, 'min', fill="#999999") 
 
 
-#p2 <-  collapse(p2, node=n11)  +
-#  geom_point2(aes(subset=(node==n11)), shape=21, size=3, fill='green')
 
 
 p2 <- p2 + geom_cladelabel(n1, "Wine/European", fontsize=3, offset=0, hjust=1.2) +
@@ -417,8 +402,8 @@ p2 <- p2 + geom_cladelabel(n1, "Wine/European", fontsize=3, offset=0, hjust=1.2)
   geom_cladelabel(n3, "Mediterranean oak",  angle=90, fontsize=3, offset=0.5, hjust=0) +
   geom_cladelabel(n4, "French dairy", angle=90, fontsize=3, offset=0.8, hjust=0.5) +
   geom_cladelabel(n5, "African beer", angle=90, fontsize=3, offset=0.6, hjust=0.3) +
-  geom_cladelabel(n17, "Mosaic beer",angle=10, fontsize=3, offset=0.5, hjust=1, barsize=0.5) + 
-  geom_cladelabel(n18, "Mixed origin",angle=30, fontsize=3, offset=0.5, hjust=1, barsize=0.5) + 
+  geom_cladelabel(n15, "Mosaic beer",angle=10, fontsize=3, offset=0.5, hjust=1, barsize=0.5) + 
+  geom_cladelabel(n16, "Mixed origin",angle=30, fontsize=3, offset=0.5, hjust=1, barsize=0.5) + 
   geom_cladelabel(n6, "Mexican agave",angle=300, fontsize=3, offset=0.8, hjust=0.5) + 
   geom_cladelabel(n7, "French Guiana human",angle=300, fontsize=3, offset=0.8, hjust=0.5) + 
   geom_cladelabel(n8, "Ale beer",angle=300, fontsize=3, offset=0.8, hjust=1) + 
@@ -426,11 +411,10 @@ p2 <- p2 + geom_cladelabel(n1, "Wine/European", fontsize=3, offset=0, hjust=1.2)
   geom_cladelabel(n10, "African palm wine",angle=10, fontsize=3, offset=0.9, hjust=0.5) + 
   geom_cladelabel(n11, "Asian islands",angle=10, fontsize=3, offset=0.9, hjust=0.5) + 
   geom_cladelabel(n12, "Sake",angle=40, fontsize=3, offset=0.2, hjust=1) + 
-  geom_cladelabel(n15, "Asian fermentation",angle=40, fontsize=3, offset=0.2, hjust=1) + 
+  geom_cladelabel(n13, "Asian fermentation",angle=40, fontsize=3, offset=0.2, hjust=1) + 
   geom_cladelabel(n14, "Taiwanese",angle=0, fontsize=3, offset=0.1, hjust=1) + 
-  #geom_cladelabel(n16, "Mosaic region 2",angle=0, fontsize=8, offset=0.5, hjust=1) + 
-  geom_hilight(node=n17, fill="#2F30EE", alpha=0.45) +
-  geom_hilight(node=n18, fill="#FFEE08", alpha=0.45) +
+  geom_hilight(node=n15, fill="#2F30EE", alpha=0.45) +
+  geom_hilight(node=n16, fill="#FFEE08", alpha=0.45) +
   geom_hilight(node=n14, fill="#999999", alpha=0.5) +
   geom_strip("CIH","ANA", label = "Mosaic region 3", fontsize=3,barsize=0.5, hjust=1) +
   geom_strip("SACE_GAV","CNC",barsize=0.5) 
@@ -439,7 +423,4 @@ p2
 ```
 
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
 
