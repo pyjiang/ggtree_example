@@ -171,14 +171,19 @@ clade1
 collapse(p, clade1, 'min', fill="#999999")  
 ```
 
-#### scale the collapsed clade
+#### scale the collapsed clade, and add a calde name 
 ```{r}
 
 ## need to scale first, and then collapse 
 
 p3 <- scaleClade(p, clade1, 0.3)
-collapse(p3, clade1, 'min', fill="#999999")  
+p3 <- collapse(p3, clade1, 'min', fill="#999999")  
+
+## add clade name 
+p3 + geom_cladelabel(clade1, "clade name", hjust=-3, fontface="bold", color="#2F30EE")
 ```
+
+
 
 #### Or highlight a clade 
 
